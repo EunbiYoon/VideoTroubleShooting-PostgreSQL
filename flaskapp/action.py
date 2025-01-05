@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import render_template, url_for, redirect, Blueprint, abort, request, url_for, redirect
-from flaskapp.models import db, addsurvey
+from flaskapp.models import db, VideoSurvey
 bp = Blueprint('action', __name__)
 
 
@@ -10,16 +10,26 @@ def index():
 
 @bp.route('/submit', methods=('POST',))
 def submit():
-    product = request.form['product']
-    dealer = request.form['dealer']
-    rating = request.form['rating']
-    review = request.form['review']
-    print(product, dealer, rating, review)
-    
-    data = addsurvey(product=product, dealer=dealer, rating=rating, review=review)
-    db.session.add(data)
-    db.session.commit()
-    return render_template('success.html', data=data)
+    try:
+        product = request.form.get('product')
+        dealer = request.form.get('dealer')
+        rating = request.form.get('rating')
+        review = request.form.get('review')
+
+        # 필수 입력값 검증
+        if not all([product, dealer, rating, review]):
+            abort(400, "모든 필드를 입력해야 합니다.")
+
+        # 데이터베이스에 추가
+        data = VideoSurvey(product=product, dealer=dealer, rating=int(rating), review=review)
+        db.session.add(data)
+        db.session.commit()
+
+        return render_template('success.html', data=data)
+    except Exception as e:
+        db.session.rollback()
+        return f"데이터베이스 오류: {str(e)}", 500
+
 
 #from video template to go back homepage
 @bp.route('/home', methods=['POST'])
